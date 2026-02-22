@@ -12,15 +12,15 @@ DESIGN_W = 1280
 FONT_SIZE_DESIGN = 96
 
 POSITIONS = {
-    "rub_cny_cash": (86,  310),   # Y +84 вниз
-    "rub_cny_card": (706, 310),
-    "usdt_cny":     (86,  560),
-    "rub_usdt":     (706, 560),
+    "rub_cny_cash": (86,  270),
+    "rub_cny_card": (706, 270),
+    "usdt_cny":     (86,  520),
+    "rub_usdt":     (706, 520),
     "date":         (40,  839),
 }
 
 TEXT_COLOR = (255, 255, 255, 255)
-DATE_COLOR = (0, 0, 0, 255)
+DATE_COLOR = (255, 255, 255, 255)  # белый
 
 def load_font(size_px: int):
     if os.path.exists(FONT_PATH):
