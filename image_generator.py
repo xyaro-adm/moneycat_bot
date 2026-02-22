@@ -11,16 +11,16 @@ FONT_PATH = os.path.join(os.path.dirname(__file__), "Inter-SemiBold.ttf")
 DESIGN_W = 1280
 FONT_SIZE_DESIGN = 96
 
+# Координаты 1:1 из Figma (Y=0 = верхний край)
 POSITIONS = {
-    "rub_cny_cash": (86,  270),
-    "rub_cny_card": (706, 270),
-    "usdt_cny":     (86,  520),
-    "rub_usdt":     (706, 520),
+    "rub_cny_cash": (86,  226),
+    "rub_cny_card": (706, 226),
+    "usdt_cny":     (86,  476),
+    "rub_usdt":     (706, 476),
     "date":         (40,  839),
 }
 
 TEXT_COLOR = (255, 255, 255, 255)
-DATE_COLOR = (255, 255, 255, 255)  # белый
 
 def load_font(size_px: int):
     if os.path.exists(FONT_PATH):
@@ -49,7 +49,7 @@ def generate_image(rates: list, date_str: str) -> io.BytesIO:
         ("rub_cny_card", rates[1], TEXT_COLOR),
         ("usdt_cny",     rates[2], TEXT_COLOR),
         ("rub_usdt",     rates[3], TEXT_COLOR),
-        ("date",         date_str, DATE_COLOR),
+        ("date",         date_str, TEXT_COLOR),
     ]
 
     for key, value, color in items:
