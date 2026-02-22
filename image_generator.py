@@ -1,18 +1,13 @@
 import io
 import os
-import urllib.request
 from PIL import Image, ImageDraw, ImageFont
 
 TEMPLATE_PATH = os.path.join(os.path.dirname(__file__), "template.png")
 FONT_PATH = os.path.join(os.path.dirname(__file__), "Inter-SemiBold.ttf")
 
-# Дизайн 1280x960, реальный PNG 2000x1500
 DESIGN_W = 1280
-
-# Координаты из Figma (X, Y) — левый верхний угол текстового блока
-# Y скорректирован: Figma baseline → PIL top (вычитаем ~высоту шрифта * 0.8)
 FONT_SIZE_DESIGN = 96
-BASELINE_CORRECTION = int(FONT_SIZE_DESIGN * 0.75)  # ~72px
+BASELINE_CORRECTION = int(FONT_SIZE_DESIGN * 0.75)
 
 POSITIONS = {
     "rub_cny_cash": (86,  226 - BASELINE_CORRECTION),
@@ -24,24 +19,9 @@ POSITIONS = {
 
 TEXT_COLOR = (255, 255, 255, 255)
 
-INTER_URL = "https://github.com/rsms/inter/raw/master/docs/font-files/Inter-SemiBold.ttf"
-
-def ensure_font():
-    """Скачивает Inter SemiBold если его нет."""
-    if os.path.exists(FONT_PATH):
-        return
-    print("Downloading Inter SemiBold font...")
-    try:
-        urllib.request.urlretrieve(INTER_URL, FONT_PATH)
-        print("Font downloaded.")
-    except Exception as e:
-        print(f"Font download failed: {e}")
-
 def load_font(size_px: int):
-    ensure_font()
     if os.path.exists(FONT_PATH):
         return ImageFont.truetype(FONT_PATH, size_px)
-    # Fallback
     fallbacks = [
         "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
         "/System/Library/Fonts/Helvetica.ttc",
