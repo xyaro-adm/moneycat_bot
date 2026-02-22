@@ -12,12 +12,10 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 BOT_TOKEN = os.environ["BOT_TOKEN"]
-CHANNEL_ID = os.environ["CHANNEL_ID"]       # например @moneycat_cargo или -100xxxxxxxxx
-ADMIN_IDS = list(map(int, os.environ["ADMIN_IDS"].split(",")))  # твой Telegram user_id
-WEBHOOK_URL = os.environ["WEBHOOK_URL"]     # https://your-app.railway.app
+CHANNEL_ID = os.environ["CHANNEL_ID"]
+ADMIN_IDS = list(map(int, os.environ["ADMIN_IDS"].split(",")))
+WEBHOOK_URL = os.environ["WEBHOOK_URL"]
 
-# Состояние сбора курсов (в памяти, на один сеанс)
-# Для продакшена можно заменить на Redis, но для одного пользователя хватит
 user_sessions = {}
 
 RATE_LABELS = [
@@ -30,9 +28,7 @@ RATE_LABELS = [
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id not in ADMIN_IDS:
         return
-    await update.message.reply_text(
-        "Привет! Отправь /rates чтобы начать ввод курсов."
-    )
+    await update.message.reply_text("Привет! Отправь /rates чтобы начать ввод курсов.")
 
 async def rates_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id not in ADMIN_IDS:
@@ -55,7 +51,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     text = update.message.text.strip()
 
-    # Проверяем что это число
     try:
         float(text.replace(",", "."))
     except ValueError:
@@ -72,10 +67,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode="Markdown"
         )
     else:
-        # Все 4 курса собраны — генерируем картинку
-        rates = session
+        rates = session[:]
         today = datetime.now()
-        # Дата на русском
         months = ["Янв","Фев","Мар","Апр","Май","Июн",
                   "Июл","Авг","Сен","Окт","Ноя","Дек"]
         date_str = f"{today.day:02d} {months[today.month - 1]}"
@@ -91,7 +84,10 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
 
         keyboard = InlineKeyboardMarkup([[
-            InlineKeyboardButton("📢 Опубликовать в канал", callback_data=f"publish|{'|'.join(rates)}|{date_str}")
+            InlineKeyboardButton(
+                "📢 Опубликовать в канал",
+                callback_data=f"publish|{'|'.join(rates)}|{date_str}"
+            )
         ]])
 
         await update.message.reply_photo(
@@ -109,7 +105,6 @@ async def publish_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     data = query.data.split("|")
-    # data = ["publish", rate1, rate2, rate3, rate4, date_str]
     rates = data[1:5]
     date_str = data[5]
 
@@ -119,13 +114,11 @@ async def publish_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_caption(f"Ошибка: {e}")
         return
 
-    await context.bot.send_photo(
-        chat_id=CHANNEL_ID,
-        photo=img_bytes
-    )
+    await context.bot.send_photo(chat_id=CHANNEL_ID, photo=img_bytes)
     await query.edit_message_caption("✅ Опубликовано в канал!")
 
-async def main():
+
+def main():
     app = Application.builder().token(BOT_TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
@@ -133,11 +126,10 @@ async def main():
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     app.add_handler(CallbackQueryHandler(publish_callback, pattern="^publish"))
 
-    # Webhook mode для Railway
-    await app.bot.set_webhook(url=f"{WEBHOOK_URL}/webhook")
-    
     port = int(os.environ.get("PORT", 8080))
-    await app.run_webhook(
+
+    # PTB 21.x — run_webhook синхронный, не awaitable
+    app.run_webhook(
         listen="0.0.0.0",
         port=port,
         webhook_url=f"{WEBHOOK_URL}/webhook",
@@ -145,5 +137,4 @@ async def main():
     )
 
 if __name__ == "__main__":
-    import asyncio
-    asyncio.run(main())
+    main()
