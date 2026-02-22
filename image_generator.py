@@ -1,6 +1,9 @@
 import io
 import os
 from PIL import Image, ImageDraw, ImageFont
+import logging
+
+logger = logging.getLogger(__name__)
 
 TEMPLATE_PATH = os.path.join(os.path.dirname(__file__), "template.png")
 FONT_PATH = os.path.join(os.path.dirname(__file__), "Inter-SemiBold.ttf")
@@ -32,10 +35,19 @@ def load_font(size_px: int):
     return ImageFont.load_default()
 
 def generate_image(rates: list, date_str: str) -> io.BytesIO:
-    # Открываем без привязки к формату — работает и с PNG и с JPEG
-    with open(TEMPLATE_PATH, "rb") as f:
-        img = Image.open(f)
-        img.load()
+    # Диагностика
+    logger.info(f"TEMPLATE_PATH: {TEMPLATE_PATH}")
+    logger.info(f"File exists: {os.path.exists(TEMPLATE_PATH)}")
+    if os.path.exists(TEMPLATE_PATH):
+        size = os.path.getsize(TEMPLATE_PATH)
+        logger.info(f"File size: {size} bytes")
+        # Читаем первые байты чтобы определить формат
+        with open(TEMPLATE_PATH, "rb") as f:
+            header = f.read(12)
+        logger.info(f"File header (hex): {header.hex()}")
+
+    img = Image.open(TEMPLATE_PATH)
+    logger.info(f"Image format: {img.format}, size: {img.size}, mode: {img.mode}")
     img = img.convert("RGBA")
 
     actual_w, _ = img.size
@@ -60,7 +72,6 @@ def generate_image(rates: list, date_str: str) -> io.BytesIO:
 
     img_rgb = img.convert("RGB")
     buf = io.BytesIO()
-    img_rgb.save(buf, format="JPEG", quality=95)
+    img_rgb.save(buf, format="PNG", optimize=True)
     buf.seek(0)
     return buf
-
