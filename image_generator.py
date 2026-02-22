@@ -32,9 +32,13 @@ def load_font(size_px: int):
     return ImageFont.load_default()
 
 def generate_image(rates: list, date_str: str) -> io.BytesIO:
-    img = Image.open(TEMPLATE_PATH).convert("RGBA")
-    actual_w, _ = img.size
+    # Открываем без привязки к формату — работает и с PNG и с JPEG
+    with open(TEMPLATE_PATH, "rb") as f:
+        img = Image.open(f)
+        img.load()
+    img = img.convert("RGBA")
 
+    actual_w, _ = img.size
     scale = actual_w / DESIGN_W
     font_size = int(FONT_SIZE_DESIGN * scale)
     font = load_font(font_size)
@@ -56,6 +60,7 @@ def generate_image(rates: list, date_str: str) -> io.BytesIO:
 
     img_rgb = img.convert("RGB")
     buf = io.BytesIO()
-    img_rgb.save(buf, format="PNG", optimize=True)
+    img_rgb.save(buf, format="JPEG", quality=95)
     buf.seek(0)
     return buf
+
