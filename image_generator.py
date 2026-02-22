@@ -1,59 +1,61 @@
 import io
 import os
+import urllib.request
 from PIL import Image, ImageDraw, ImageFont
 
-# Шаблон лежит рядом с этим файлом
 TEMPLATE_PATH = os.path.join(os.path.dirname(__file__), "template.png")
+FONT_PATH = os.path.join(os.path.dirname(__file__), "Inter-SemiBold.ttf")
 
-# Оригинальный дизайн был 1280x960, но PNG оказался 2000x1500
-# Считаем масштаб автоматически
+# Дизайн 1280x960, реальный PNG 2000x1500
 DESIGN_W = 1280
-DESIGN_H = 960
 
-# Позиции из ТЗ (в координатах дизайна 1280x960)
-# Каждый курс: (x, y) — левый нижний угол числа (как в Figma/дизайне)
+# Координаты из Figma (X, Y) — левый верхний угол текстового блока
+# Y скорректирован: Figma baseline → PIL top (вычитаем ~высоту шрифта * 0.8)
+FONT_SIZE_DESIGN = 96
+BASELINE_CORRECTION = int(FONT_SIZE_DESIGN * 0.75)  # ~72px
+
 POSITIONS = {
-    "rub_cny_cash":  (86,  226),   # RUB/CNY Нал
-    "rub_cny_card":  (706, 226),   # RUB/CNY Карта
-    "usdt_cny":      (86,  476),   # USDT/CNY
-    "rub_usdt":      (706, 476),   # RUB/USDT
-    "date":          (40,  839),   # Дата
+    "rub_cny_cash": (86,  226 - BASELINE_CORRECTION),
+    "rub_cny_card": (706, 226 - BASELINE_CORRECTION),
+    "usdt_cny":     (86,  476 - BASELINE_CORRECTION),
+    "rub_usdt":     (706, 476 - BASELINE_CORRECTION),
+    "date":         (40,  839 - BASELINE_CORRECTION),
 }
 
-FONT_SIZE_DESIGN = 96       # px в дизайне
-DATE_FONT_SIZE_DESIGN = 96  # px дата
-
-# Цвет текста — белый
 TEXT_COLOR = (255, 255, 255, 255)
 
+INTER_URL = "https://github.com/rsms/inter/raw/master/docs/font-files/Inter-SemiBold.ttf"
+
+def ensure_font():
+    """Скачивает Inter SemiBold если его нет."""
+    if os.path.exists(FONT_PATH):
+        return
+    print("Downloading Inter SemiBold font...")
+    try:
+        urllib.request.urlretrieve(INTER_URL, FONT_PATH)
+        print("Font downloaded.")
+    except Exception as e:
+        print(f"Font download failed: {e}")
+
 def load_font(size_px: int):
-    """Загружает Inter Semibold или fallback на системный шрифт."""
-    font_paths = [
-        "/usr/share/fonts/truetype/inter/Inter-SemiBold.ttf",
-        "/usr/share/fonts/opentype/inter/Inter-SemiBold.otf",
-        os.path.join(os.path.dirname(__file__), "fonts", "Inter-SemiBold.ttf"),
-        "/System/Library/Fonts/Helvetica.ttc",  # Mac fallback
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",  # Linux fallback
+    ensure_font()
+    if os.path.exists(FONT_PATH):
+        return ImageFont.truetype(FONT_PATH, size_px)
+    # Fallback
+    fallbacks = [
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+        "/System/Library/Fonts/Helvetica.ttc",
     ]
-    for path in font_paths:
+    for path in fallbacks:
         if os.path.exists(path):
             return ImageFont.truetype(path, size_px)
-    
-    # Последний fallback — дефолтный шрифт PIL (не красиво, но работает)
     return ImageFont.load_default()
 
-def generate_image(rates: list[str], date_str: str) -> io.BytesIO:
-    """
-    rates: [rub_cny_cash, rub_cny_card, usdt_cny, rub_usdt]
-    date_str: например "07 Фев"
-    Возвращает BytesIO с PNG.
-    """
+def generate_image(rates: list, date_str: str) -> io.BytesIO:
     img = Image.open(TEMPLATE_PATH).convert("RGBA")
-    actual_w, actual_h = img.size
+    actual_w, _ = img.size
 
-    # Масштабный коэффициент
     scale = actual_w / DESIGN_W
-
     font_size = int(FONT_SIZE_DESIGN * scale)
     font = load_font(font_size)
 
@@ -70,10 +72,8 @@ def generate_image(rates: list[str], date_str: str) -> io.BytesIO:
     for key, (x_design, y_design) in POSITIONS.items():
         x = int(x_design * scale)
         y = int(y_design * scale)
-        text = values[key]
-        draw.text((x, y), text, font=font, fill=TEXT_COLOR)
+        draw.text((x, y), values[key], font=font, fill=TEXT_COLOR)
 
-    # Конвертируем обратно в RGB для отправки в Telegram
     img_rgb = img.convert("RGB")
     buf = io.BytesIO()
     img_rgb.save(buf, format="PNG", optimize=True)
