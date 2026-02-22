@@ -10,17 +10,17 @@ FONT_PATH = os.path.join(os.path.dirname(__file__), "Inter-SemiBold.ttf")
 
 DESIGN_W = 1280
 FONT_SIZE_DESIGN = 96
-BASELINE_CORRECTION = int(FONT_SIZE_DESIGN * 0.75)
 
 POSITIONS = {
-    "rub_cny_cash": (86,  226 - BASELINE_CORRECTION),
-    "rub_cny_card": (706, 226 - BASELINE_CORRECTION),
-    "usdt_cny":     (86,  476 - BASELINE_CORRECTION),
-    "rub_usdt":     (706, 476 - BASELINE_CORRECTION),
-    "date":         (40,  839 - BASELINE_CORRECTION),
+    "rub_cny_cash": (86,  310),   # Y +84 вниз
+    "rub_cny_card": (706, 310),
+    "usdt_cny":     (86,  560),
+    "rub_usdt":     (706, 560),
+    "date":         (40,  839),
 }
 
 TEXT_COLOR = (255, 255, 255, 255)
+DATE_COLOR = (0, 0, 0, 255)
 
 def load_font(size_px: int):
     if os.path.exists(FONT_PATH):
@@ -35,40 +35,28 @@ def load_font(size_px: int):
     return ImageFont.load_default()
 
 def generate_image(rates: list, date_str: str) -> io.BytesIO:
-    # Диагностика
-    logger.info(f"TEMPLATE_PATH: {TEMPLATE_PATH}")
-    logger.info(f"File exists: {os.path.exists(TEMPLATE_PATH)}")
-    if os.path.exists(TEMPLATE_PATH):
-        size = os.path.getsize(TEMPLATE_PATH)
-        logger.info(f"File size: {size} bytes")
-        # Читаем первые байты чтобы определить формат
-        with open(TEMPLATE_PATH, "rb") as f:
-            header = f.read(12)
-        logger.info(f"File header (hex): {header.hex()}")
-
-    img = Image.open(TEMPLATE_PATH)
-    logger.info(f"Image format: {img.format}, size: {img.size}, mode: {img.mode}")
-    img = img.convert("RGBA")
-
+    img = Image.open(TEMPLATE_PATH).convert("RGBA")
     actual_w, _ = img.size
+
     scale = actual_w / DESIGN_W
     font_size = int(FONT_SIZE_DESIGN * scale)
     font = load_font(font_size)
 
     draw = ImageDraw.Draw(img)
 
-    values = {
-        "rub_cny_cash": rates[0],
-        "rub_cny_card": rates[1],
-        "usdt_cny":     rates[2],
-        "rub_usdt":     rates[3],
-        "date":         date_str,
-    }
+    items = [
+        ("rub_cny_cash", rates[0], TEXT_COLOR),
+        ("rub_cny_card", rates[1], TEXT_COLOR),
+        ("usdt_cny",     rates[2], TEXT_COLOR),
+        ("rub_usdt",     rates[3], TEXT_COLOR),
+        ("date",         date_str, DATE_COLOR),
+    ]
 
-    for key, (x_design, y_design) in POSITIONS.items():
+    for key, value, color in items:
+        x_design, y_design = POSITIONS[key]
         x = int(x_design * scale)
         y = int(y_design * scale)
-        draw.text((x, y), values[key], font=font, fill=TEXT_COLOR)
+        draw.text((x, y), value, font=font, fill=color)
 
     img_rgb = img.convert("RGB")
     buf = io.BytesIO()
