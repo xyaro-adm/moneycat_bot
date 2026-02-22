@@ -114,7 +114,10 @@ async def publish_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_caption(f"Ошибка: {e}")
         return
 
-    await context.bot.send_photo(chat_id=CHANNEL_ID, photo=img_bytes)
+    channel_keyboard = InlineKeyboardMarkup([[
+        InlineKeyboardButton("Начать обмен", url="https://t.me/moneycat_exchange")
+    ]])
+    await context.bot.send_photo(chat_id=CHANNEL_ID, photo=img_bytes, reply_markup=channel_keyboard)
     await query.edit_message_caption("✅ Опубликовано в канал!")
 
 
